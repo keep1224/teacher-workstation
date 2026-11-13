@@ -2,23 +2,33 @@
 # post-commit：提交后自动打包桌面版 exe
 # 打包失败不会撤销/影响已完成的提交，只打印提示。
 # 产物：workstation-app/releases/教师班主任工作台-desktop-<version>.exe
+#
+# 临时跳过自动打包：  git commit -m "..."  前设置
+#   Windows cmd:      set SKIP_PACK=1 && git commit ...
+#   Git Bash / macOS:  SKIP_PACK=1 git commit ...
 
 ROOT=$(git rev-parse --show-toplevel)
+
+if [ -n "$SKIP_PACK" ]; then
+  echo "[post-commit] SKIP_PACK 已设置，跳过自动打包。"
+  exit 0
+fi
 
 # 只有改动了 web/ 或 workstation-app/ 才打包，无关提交不白等
 CHANGED=$(git show --name-only --pretty=format: HEAD | tr '\r' '\n' | grep -E '^(web|workstation-app)/' || true)
 if [ -z "$CHANGED" ]; then
-  echo "[post-commit] 本次提交未改动 web/ 或 workstation-app/，跳过桌面版打包。"
+  echo "[post-commit] 本次提交未改动 web/ 或 workstation-app/，跳过自动打包。"
   exit 0
 fi
 
-echo "[post-commit] 检测到桌面版改动，开始打包（约 1 分钟）..."
+echo "[post-commit] 检测到桌面版改动，开始自动打包（约 1-2 分钟）..."
 cd "$ROOT/workstation-app"
-# Git Bash 下调用 cmd：//c 会被转义成 /c
-cmd //c "pack-core.bat" > pack.log 2> pack.err.log
+# MSYS_NO_PATHCONV=1 保证 Git Bash / sh / git 直接执行时 /c 不被路径转义吃掉
+MSYS_NO_PATHCONV=1 cmd /c "pack-core.bat" > pack.log 2> pack.err.log
 if [ $? -eq 0 ]; then
-  echo "[post-commit] 打包成功，exe 已归档到 releases/"
-  cmd //c "dir /b releases\*.exe" 2>/dev/null
+  echo "[post-commit] 打包成功，exe 已归档到 workstation-app/releases/"
+  MSYS_NO_PATHCONV=1 cmd /c "dir /b releases" 2>/dev/null
 else
-  echo "[post-commit] 打包失败，见 workstation-app/pack.log 与 pack.err.log"
+  echo "[post-commit] 打包失败，请查看 workstation-app/pack.log 和 pack.err.log"
+  tail -n 15 pack.log 2>/dev/null
 fi

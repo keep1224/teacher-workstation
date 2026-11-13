@@ -3,7 +3,6 @@ node_modules/
 
 # 构建产物（dist* 匹配 dist、dist2、dist_1、dist_N 等所有编号输出目录）
 workstation-app/dist*/
-workstation-app/build/icons/
 workstation-app/build.log
 *.exe
 *.dmg
@@ -14,6 +13,13 @@ workstation-app/releases/
 
 # 本地开发配置
 workstation-app/.npmrc
+
+# 打包日志
+workstation-app/pack.log
+workstation-app/pack.err.log
+
+# 生成的图标（每次打包前由 node icon.js 重新生成）
+workstation-app/build/icons/
 
 # 本地开发工具（不进仓库）
 .agnes/
