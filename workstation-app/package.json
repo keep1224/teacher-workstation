@@ -7,9 +7,10 @@
   "author": "赛博老爸",
   "license": "UNLICENSED",
   "scripts": {
+    "icon": "node icon.js",
     "sync": "node sync-assets.js",
     "start": "npm run sync && electron .",
-    "build": "npm run sync && electron-builder --win portable"
+    "build": "node icon.js && npm run sync && electron-builder --win portable"
   },
   "devDependencies": {
     "7zip": "^0.0.6",
@@ -20,27 +21,32 @@
     "appId": "com.cyberdaddy.teacher-workstation",
     "productName": "教师班主任工作台",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
       "app/**/*",
+      "build/icons/**/*",
       "package.json"
     ],
     "electronDist": "node_modules/electron/dist",
     "win": {
       "target": "portable",
-      "signAndEditExecutable": false
+      "icon": "build/icons/teacher-workstation.ico",
+      "signAndEditExecutable": true
     },
     "portable": {
       "artifactName": "教师班主任工作台-desktop-${version}.exe"
     },
     "mac": {
       "target": "dmg",
-      "category": "Education"
+      "category": "Education",
+      "icon": "build/icons/teacher-workstation.icns"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "build/icons/teacher-workstation.png"
     },
     "nsis": {
       "oneClick": false,

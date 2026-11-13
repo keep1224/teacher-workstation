@@ -76,7 +76,8 @@ function createWindow() {
     height: 900,
     minWidth: 1100,
     title: '教师班主任工作台',
-    autoHideMenuBar: true
+    autoHideMenuBar: true,
+    icon: path.join(__dirname, 'build', 'icons', 'teacher-workstation.png')
   });
   mainWindow.loadFile(path.join(__dirname, 'app', 'index.html'));
 

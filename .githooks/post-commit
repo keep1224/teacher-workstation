@@ -1,0 +1,24 @@
+#!/bin/sh
+# post-commit：提交后自动打包桌面版 exe
+# 打包失败不会撤销/影响已完成的提交，只打印提示。
+# 产物：workstation-app/releases/教师班主任工作台-desktop-<version>.exe
+
+ROOT=$(git rev-parse --show-toplevel)
+
+# 只有改动了 web/ 或 workstation-app/ 才打包，无关提交不白等
+CHANGED=$(git show --name-only --pretty=format: HEAD | tr '\r' '\n' | grep -E '^(web|workstation-app)/' || true)
+if [ -z "$CHANGED" ]; then
+  echo "[post-commit] 本次提交未改动 web/ 或 workstation-app/，跳过桌面版打包。"
+  exit 0
+fi
+
+echo "[post-commit] 检测到桌面版改动，开始打包（约 1 分钟）..."
+cd "$ROOT/workstation-app"
+# Git Bash 下调用 cmd：//c 会被转义成 /c
+cmd //c "pack-core.bat" > pack.log 2> pack.err.log
+if [ $? -eq 0 ]; then
+  echo "[post-commit] 打包成功，exe 已归档到 releases/"
+  cmd //c "dir /b releases\*.exe" 2>/dev/null
+else
+  echo "[post-commit] 打包失败，见 workstation-app/pack.log 与 pack.err.log"
+fi
