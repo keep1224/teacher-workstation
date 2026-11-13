@@ -3,8 +3,11 @@ setlocal
 rem ============================================================
 rem  pack-core.bat (no pause) - shared build routine
 rem  Used by pack.bat (manual) and git post-commit (auto).
-rem  Each retry uses a FRESH numbered dist_N dir so Windows
-rem  Defender real-time scan never locks app.asar mid-build.
+rem  Strategy: each attempt uses a FRESH numbered dist_N dir.
+rem  - If an old dist_N is still locked by AV scan, SKIP it and
+rem    use the next number immediately (no waiting).
+rem  - A fresh empty dir has no locked files, so the build runs
+rem    clean and fast.
 rem  After success the portable exe is archived to releases\.
 rem ============================================================
 cd /d "%~dp0"
@@ -30,31 +33,33 @@ rem point the binaries mirror at CN CDN in case anything still needs it
 set ELECTRON_BUILDER_BINARIES_MIRROR=https://cdn.npmmirror.com/binaries/electron-builder-binaries/
 set SZA_PATH=node_modules\7zip-bin\win\x64\7za.exe
 
-rem sync the latest index.html into the app bundle
+rem generate app icons, then sync the latest web files into the app bundle
+node icon.js
 node sync-assets.js
 if errorlevel 1 (
   echo [FAIL] sync-assets failed
   exit /b 1
 )
 
-rem Defender real-time scan can lock the freshly written asar for a while.
-rem Wait before each attempt, use a fresh numbered dir, retry up to 6 times.
 set /a N=0
 :retry
 set /a N+=1
-if %N% GTR 6 exit /b 1
+if %N% GTR 8 exit /b 1
 set OUT=dist_%N%
-rmdir /s /q %OUT% 2>nul
+
+rem if an old dist_N cannot be deleted (AV still scanning it),
+rem skip to the next name right away - never build into a dirty dir
 if exist %OUT% (
-  echo [retry] %OUT% cannot be removed yet, waiting...
-  ping -n 9 127.0.0.1 >nul
-) else (
-  ping -n 5 127.0.0.1 >nul
+  rmdir /s /q %OUT% 2>nul
+  if exist %OUT% (
+    echo [skip %N%] %OUT% still locked, using next dir name...
+    goto retry
+  )
 )
+
 node node_modules\electron-builder\cli.js --win portable -c.directories.output=%OUT%
 if not errorlevel 1 goto ok
-echo [retry %N%] output may be locked by Defender, waiting longer...
-ping -n 9 127.0.0.1 >nul
+echo [retry %N%] build error, trying next dir...
 goto retry
 
 :ok
