@@ -14,11 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         - os: windows-latest
-          target: portable
+          builder: --win portable
         - os: macos-latest
-          target: dmg
+          builder: --mac dmg
         - os: ubuntu-latest
-          target: AppImage
+          builder: --linux AppImage
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -33,8 +33,11 @@ jobs:
       - name: 安装依赖
         run: npm install --no-fund --no-audit
 
-      - name: 同步 web 文件并打包
-        run: npm run build
+      - name: 生成图标并同步 web 文件
+        run: node icon.js && node sync-assets.js
+
+      - name: 打包
+        run: npx electron-builder ${{ matrix.builder }}
 
       - name: 收集产物
         run: |
@@ -46,6 +49,7 @@ jobs:
           else
             cp dist/*.AppImage release/ 2>/dev/null || true
           fi
+          ls -lh release/
         shell: bash
 
       - uses: actions/upload-artifact@v4
@@ -56,7 +60,7 @@ jobs:
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -64,8 +68,8 @@ jobs:
           merge-multiple: true
 
       - name: 发 GitHub Release
-        run: |
-          gh release create "$TAG" --title "教师班主任工作台 桌面版 $TAG" --generate-notes $(ls artifacts/*.exe artifacts/*.dmg artifacts/*.AppImage 2>/dev/null)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*
+          generate_release_notes: true
