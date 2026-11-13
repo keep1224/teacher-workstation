@@ -1,0 +1,71 @@
+name: 构建桌面版
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        - os: windows-latest
+          target: portable
+        - os: macos-latest
+          target: dmg
+        - os: ubuntu-latest
+          target: AppImage
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: workstation-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装依赖
+        run: npm install --no-fund --no-audit
+
+      - name: 同步 web 文件并打包
+        run: npm run build
+
+      - name: 收集产物
+        run: |
+          mkdir -p release
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp dist/*.exe release/ 2>/dev/null || true
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            cp dist/*.dmg release/ 2>/dev/null || true
+          else
+            cp dist/*.AppImage release/ 2>/dev/null || true
+          fi
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teacher-workstation-${{ matrix.os }}
+          path: release/
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 发 GitHub Release
+        run: |
+          gh release create "$TAG" --title "教师班主任工作台 桌面版 $TAG" --generate-notes $(ls artifacts/*.exe artifacts/*.dmg artifacts/*.AppImage 2>/dev/null)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}

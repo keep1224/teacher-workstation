@@ -1,0 +1,51 @@
+{
+  "name": "teacher-workstation",
+  "productName": "教师班主任工作台",
+  "version": "2.0.1",
+  "description": "教师班主任工作台 · Electron 桌面版（由单文件 index.html 打包而来）",
+  "main": "main.js",
+  "author": "赛博老爸",
+  "license": "UNLICENSED",
+  "scripts": {
+    "sync": "node sync-assets.js",
+    "start": "npm run sync && electron .",
+    "build": "npm run sync && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "7zip": "^0.0.6",
+    "electron": "31.3.1",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.cyberdaddy.teacher-workstation",
+    "productName": "教师班主任工作台",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "app/**/*",
+      "package.json"
+    ],
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "教师班主任工作台-desktop-${version}.exe"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "Education"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
