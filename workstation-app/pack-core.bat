@@ -37,16 +37,24 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem Defender real-time scan can lock the freshly written asar for a while.
+rem Wait before each attempt, use a fresh numbered dir, retry up to 6 times.
 set /a N=0
 :retry
 set /a N+=1
-if %N% GTR 5 exit /b 1
+if %N% GTR 6 exit /b 1
 set OUT=dist_%N%
 rmdir /s /q %OUT% 2>nul
-ping -n 4 127.0.0.1 >nul
+if exist %OUT% (
+  echo [retry] %OUT% cannot be removed yet, waiting...
+  ping -n 9 127.0.0.1 >nul
+) else (
+  ping -n 5 127.0.0.1 >nul
+)
 node node_modules\electron-builder\cli.js --win portable -c.directories.output=%OUT%
 if not errorlevel 1 goto ok
-echo [retry %N%] output may be locked by Defender, retrying...
+echo [retry %N%] output may be locked by Defender, waiting longer...
+ping -n 9 127.0.0.1 >nul
 goto retry
 
 :ok
